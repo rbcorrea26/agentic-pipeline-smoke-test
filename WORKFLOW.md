@@ -48,7 +48,13 @@ executor:
 
 acp:
   command: "$HOME/automation/bin/cline --acp"   # ex.: $HOME/automation/bin/cline --acp
-  auto_approve_requests: false         # fail-closed: pedido de permissao ACP e negado por default
+  # Execucao headless: nao existe operador para aprovar um pedido de permissao do
+  # agente, entao o pedido seria negado (fail-closed) e a execucao terminaria em
+  # `{:approval_required, _}` sem produzir nada. O pipeline aprova os pedidos do
+  # agente e mantem a contencao real fora do protocolo: workspace isolado por issue,
+  # execucao como o usuario dono do ambiente, token do tracker REMOVIDO do processo
+  # do agente pelo cliente ACP e o executor sem acesso a outra credencial.
+  auto_approve_requests: true
 
 # Publicacao: gates do projeto -> branch -> Draft PR -> CI -> handoff.
 # Sem este bloco o Symphony apenas executa os turnos e nao publica nada.
