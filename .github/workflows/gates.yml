@@ -1,0 +1,27 @@
+name: gates
+
+# O CI roda o MESMO conjunto que scripts/agent/gates.sh: ele e a evidencia oficial
+# de execucao (resultado por rodada, transitorio) e nao substitui os gates locais.
+# O projeto pode adicionar jobs (matriz, lint extra), mas nenhum job pode
+# enfraquecer ou pular os gates definidos no repositorio.
+on:
+  pull_request:
+  push:
+    branches:
+      - "main"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: gates do projeto (mesmos comandos rodados localmente)
+        run: bash scripts/agent/gates.sh

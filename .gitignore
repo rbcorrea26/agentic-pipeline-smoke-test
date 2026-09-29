@@ -1,0 +1,15 @@
+# Segredos nunca versionados (ver AGENTS.md e docs/operations/preflight.md).
+.env
+.env.*
+*.local.env
+*.key
+*.pem
+*.crt
+
+# Artefatos locais
+*.log
+logs/
+tmp/
+.DS_Store
+.vscode/
+.idea/
