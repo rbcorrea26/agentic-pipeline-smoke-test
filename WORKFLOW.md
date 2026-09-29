@@ -34,7 +34,10 @@ hooks:
 
 agent:
   max_concurrent_agents: 1          # comece conservador; aumente com evidencia
-  max_turns: 20
+  # Enquanto a issue esta em estado ativo, o runner encadeia turnos ate este limite.
+  # Com `delivery.enabled`, e o delivery que tira a issue do estado ativo (removendo
+  # o rotulo de entrada) ao entregar: limite pequeno evita turnos pagos repetidos.
+  max_turns: 1
 
 # Executor: o fork do Symphony fala ACP com o agente lancado por `acp.command`
 # (Cline no runtime isolado do ambiente). O Codex app-server continua suportado
