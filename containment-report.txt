@@ -1,0 +1,46 @@
+hostname=ade-sandbox
+pid1=bwrap
+home=/home/rbcorrea/automation/state/cline-sandbox/1790697975-2168374/home
+pwd=/home/rbcorrea/automation/workspaces/agentic-pipeline-smoke-test/GH-3
+provider=deepseek
+model=deepseek-v4-flash
+credencial_presente=sim
+tracker_token=ausente
+env_names=CLINE_API_KEY,CLINE_CONNECTOR_CLI_LAUNCH,CLINE_MODEL,CLINE_PROVIDER,CLINE_WRAPPER_PATH,HOME,LANG,NODE_EXTRA_CA_CERTS,OLDPWD,PATH,PWD,SHLVL,TERM,_,
+--- caminhos (esperado: ausente) ---
+VISIVEL /home/rbcorrea
+ausente /home/rbcorrea/projects
+ausente /home/rbcorrea/projects/security-canary.txt
+ausente /home/rbcorrea/.ssh
+ausente /home/rbcorrea/.config/gh
+ausente /home/rbcorrea/.cline
+VISIVEL /home/rbcorrea/automation
+ausente /home/rbcorrea/automation/state/cline
+ausente /home/rbcorrea/automation/state/cline/data/settings/providers.json
+ausente /home/rbcorrea/automation/security-canaries/home-canary.txt
+ausente /home/rbcorrea/.config/agentic-dev-environment/env
+ausente /mnt/c
+ausente /mnt/wsl
+ausente /var/run/docker.sock
+ausente /run/user/1000
+--- caminhos (esperado: visivel) ---
+visivel /home/rbcorrea/automation/workspaces/agentic-pipeline-smoke-test/GH-3
+visivel /ade/node/bin/node
+visivel /ade/cline/node_modules/cline/bin/cline
+canario_externo=inacessivel
+
+# NOTA (linhas do relatorio acima permanecem literais, sem edicao):
+# O comando foi executado por mim, de dentro do ambiente de trabalho contido
+# (`bash containment-check.sh`, exit 0).
+#
+# Os dois itens `VISIVEL` em `/home/rbcorrea` e `/home/rbcorrea/automation` NAO sao
+# bind mount do host: `/proc/self/mountinfo` nao tem entrada para esses caminhos.
+# Sao diretorios-stub vazios no tmpfs do sandbox, criados pelo wrapper como pais
+# dos pontos de montagem da allowlist. Evidencia:
+#   * `/home/rbcorrea/automation` contem apenas `state/` e `workspaces/` (os dois
+#     pontos de montagem permitidos) -- nao tem `bin/`, `tools/`,
+#     `security-canaries/` nem `projects/`;
+#   * o canario externo e o `~/.ssh` do host sao inacessiveis (ENOENT);
+#   * escrita nesse stub fica no tmpfs e nao toca o host.
+# Ou seja: contencao preservada, porem o criterio de aceite literal "ausente para
+# TODOS os caminhos da lista" nao e satisfeito por esses dois itens.
