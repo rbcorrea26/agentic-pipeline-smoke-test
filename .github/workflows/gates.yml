@@ -1,9 +1,19 @@
 name: gates
 
-# O CI roda o MESMO conjunto que scripts/agent/gates.sh: ele e a evidencia oficial
-# de execucao (resultado por rodada, transitorio) e nao substitui os gates locais.
-# O projeto pode adicionar jobs (matriz, lint extra), mas nenhum job pode
-# enfraquecer ou pular os gates definidos no repositorio.
+# Dois papeis, um por tipo de repositorio -- e a razao de existir este arquivo com
+# dois jobs:
+#
+#   * `template` (integridade do TEMPLATE): roda enquanto o repositorio ainda for o
+#     template (placeholders {{PROJECT_*}} presentes) e valida estrutura, contratos,
+#     sintaxe dos scripts, placeholders esperados e o placeholder bloqueante de
+#     gates. Um template nao tem gates de projeto para executar.
+#   * `gates` (gates DO PROJETO): roda depois da instanciacao (sem placeholders) e
+#     executa `scripts/agent/gates.sh` -- a definicao oficial de "passou" do projeto.
+#
+# Isso mantem o TEMPLATE verde sem enfraquecer o contrato: depois de instanciado, o
+# job `gates` volta a rodar e falha enquanto `scripts/agent/gates.sh` nao tiver gates
+# reais. Nenhum caminho mascara ausencia de gates em consumidor real -- e o preflight
+# do consumidor (`scripts/agent/preflight.sh --gates`) falha do mesmo jeito, local.
 on:
   pull_request:
   push:
@@ -18,7 +28,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  template:
+    name: template integrity (pre-instantiation)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      instantiated: ${{ steps.detect.outputs.instantiated }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: detect whether the template was already instantiated
+        id: detect
+        run: |
+          if grep -rIlE '\{\{PROJECT_[A-Z_]+\}\}' . --exclude-dir=.git >/dev/null 2>&1; then
+            echo "instantiated=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "instantiated=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: validate the template contract
+        if: steps.detect.outputs.instantiated == 'false'
+        run: bash scripts/template/check-template.sh
+
   gates:
+    name: project gates
+    needs: template
+    if: needs.template.outputs.instantiated == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
