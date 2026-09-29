@@ -49,11 +49,25 @@ executor:
 acp:
   command: "$HOME/automation/bin/cline --acp"   # ex.: $HOME/automation/bin/cline --acp
   # Execucao headless: nao existe operador para aprovar um pedido de permissao do
-  # agente, entao o pedido seria negado (fail-closed) e a execucao terminaria em
-  # `{:approval_required, _}` sem produzir nada. O pipeline aprova os pedidos do
-  # agente e mantem a contencao real fora do protocolo: workspace isolado por issue,
-  # execucao como o usuario dono do ambiente, token do tracker REMOVIDO do processo
-  # do agente pelo cliente ACP e o executor sem acesso a outra credencial.
+  # agente. Com o default `false` (fail-closed) o primeiro pedido e negado e a
+  # execucao termina em `{:approval_required, _}` sem produzir nada -- medido na fase
+  # 6 da plataforma. Por isso o pipeline aprova os pedidos do agente.
+  #
+  # ATENCAO: isto NAO e sandbox e NAO restringe o processo do agente.
+  #   * o ACP nao promete sandbox: `codex.thread_sandbox`/`turn_sandbox_policy` nao
+  #     sao enviados ao agente ACP;
+  #   * o cwd e validado sob o workspace root, mas isso e diretorio de trabalho, nao
+  #     barreira de filesystem -- o processo NAO fica restrito ao workspace;
+  #   * nao ha isolamento de filesystem, de processo nem de rede;
+  #   * o agente herda os privilegios normais do usuario que executa o pipeline.
+  # O que existe de fato: o token do tracker e REMOVIDO do processo do agente pelo
+  # cliente ACP (`unset`) e o cliente ACP nao anuncia capabilities `fs`/`terminal` --
+  # isso limita o que o agente poderia pedir AO SYMPHONY, nao o que ele faz por conta
+  # propria. Portanto, auto-aprovacao e RISCO OPERACIONAL DELIBERADO e, antes do
+  # primeiro consumidor real, a politica de contencao precisa ser revisada e aceita
+  # explicitamente (ou substituida por contencao real): ver a issue
+  # rbcorrea26/agentic-dev-environment#26 ("security: define real containment policy
+  # for headless ACP auto-approval before first consumer").
   auto_approve_requests: true
 
 # Publicacao: gates do projeto -> branch -> Draft PR -> CI -> handoff.
