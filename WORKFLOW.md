@@ -39,35 +39,37 @@ agent:
   # o rotulo de entrada) ao entregar: limite pequeno evita turnos pagos repetidos.
   max_turns: 1
 
-# Executor: o fork do Symphony fala ACP com o agente lancado por `acp.command`
-# (Cline no runtime isolado do ambiente). O Codex app-server continua suportado
-# como caminho alternativo: para usa-lo, troque `executor.kind` para `codex` e
-# remova o bloco `acp`.
+# Executor: o fork do Symphony fala ACP com o agente lancado por `acp.command`.
+# O comando CANONICO e o wrapper CONTIDO da plataforma
+# (`$HOME/automation/bin/cline-sandboxed`, instalado pelo agentic-dev-environment):
+# ele monta uma allowlist de filesystem com bubblewrap e lanca o Cline dentro dela
+# (workspace da issue RW; HOME real, ~/projects, /mnt, ~/.ssh, ~/.config/gh,
+# ~/.cline, o estado do Cline do pipeline e sockets do host NAO existem la dentro).
+# O Codex app-server continua suportado como caminho alternativo: para usa-lo,
+# troque `executor.kind` para `codex` e remova o bloco `acp`.
 executor:
   kind: acp
 
 acp:
-  command: "$HOME/automation/bin/cline --acp"   # ex.: $HOME/automation/bin/cline --acp
+  command: "$HOME/automation/bin/cline-sandboxed --acp"
   # Execucao headless: nao existe operador para aprovar um pedido de permissao do
   # agente. Com o default `false` (fail-closed) o primeiro pedido e negado e a
   # execucao termina em `{:approval_required, _}` sem produzir nada -- medido na fase
   # 6 da plataforma. Por isso o pipeline aprova os pedidos do agente.
   #
-  # ATENCAO: isto NAO e sandbox e NAO restringe o processo do agente.
+  # Isto NAO e a contencao: a contencao e a allowlist de filesystem do wrapper
+  # contido (`acp.command` acima), decidida em
+  # rbcorrea26/agentic-dev-environment (ADR-0008, issue #26). O que vale registrar:
   #   * o ACP nao promete sandbox: `codex.thread_sandbox`/`turn_sandbox_policy` nao
   #     sao enviados ao agente ACP;
-  #   * o cwd e validado sob o workspace root, mas isso e diretorio de trabalho, nao
-  #     barreira de filesystem -- o processo NAO fica restrito ao workspace;
-  #   * nao ha isolamento de filesystem, de processo nem de rede;
-  #   * o agente herda os privilegios normais do usuario que executa o pipeline.
-  # O que existe de fato: o token do tracker e REMOVIDO do processo do agente pelo
-  # cliente ACP (`unset`) e o cliente ACP nao anuncia capabilities `fs`/`terminal` --
-  # isso limita o que o agente poderia pedir AO SYMPHONY, nao o que ele faz por conta
-  # propria. Portanto, auto-aprovacao e RISCO OPERACIONAL DELIBERADO e, antes do
-  # primeiro consumidor real, a politica de contencao precisa ser revisada e aceita
-  # explicitamente (ou substituida por contencao real): ver a issue
-  # rbcorrea26/agentic-dev-environment#26 ("security: define real containment policy
-  # for headless ACP auto-approval before first consumer").
+  #   * o cwd e validado sob o workspace root, mas isso e diretorio de trabalho;
+  #   * o isolamento de filesystem/processo vem do wrapper sandboxed; a REDE e
+  #     compartilhada com o host (nao ha isolamento de rede -- risco residual);
+  #   * se o wrapper contido nao conseguir montar a allowlist, o agente NAO roda
+  #     (fail-closed): nunca ha fallback para execucao sem contencao.
+  # O cliente ACP remove o token do tracker do processo do agente (`unset`) e nao
+  # anuncia capabilities `fs`/`terminal` -- isso limita o que o agente poderia pedir
+  # AO SYMPHONY, nao o que ele faz por conta propria.
   auto_approve_requests: true
 
 # Publicacao: gates do projeto -> branch -> Draft PR -> CI -> handoff.
